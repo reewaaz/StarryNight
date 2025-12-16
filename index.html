@@ -3,168 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Starry Night Ultimate</title>
+    <title>Starry Night</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
 
         :root {
-            --glass-bg: rgba(20, 20, 30, 0.6);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-            --glass-blur: blur(12px);
+            --surface: rgba(15, 15, 20, 0.75);
             --primary: #D0BCFF;
-            --accent: #4F378B;
+            --on-surface: #E6E1E5;
+            --glass-blur: blur(16px);
+            --border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000; /* Fallback */
+            background-color: #000;
             font-family: 'Roboto', sans-serif;
-            color: white;
+            color: var(--on-surface);
             user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
         /* The 3D Canvas */
-        canvas {
+        #canvas-container {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1; /* Explicitly set z-index */
-            display: block;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1;
         }
 
-        /* UI Layer - sits on top of Canvas */
+        /* --- UI Overlay --- */
         #ui-layer {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10; /* Above canvas */
-            pointer-events: none; /* Allow clicks to pass through to 3D */
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass to 3D */
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 16px;
+            padding: 20px;
             box-sizing: border-box;
         }
 
-        /* Enable pointer events for actual buttons */
         .interactive {
             pointer-events: auto;
         }
 
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        /* Search Bar */
+        .search-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
-        .pill {
-            background: var(--glass-bg);
+        .search-bar {
+            width: 100%;
+            background: var(--surface);
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
-            border: var(--glass-border);
-            padding: 10px 20px;
+            border: var(--border);
             border-radius: 30px;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            padding: 12px 20px 12px 50px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
-        /* Bottom Controls */
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
         }
 
-        .info-card {
-            background: var(--glass-bg);
+        /* Compass */
+        .compass-container {
+            align-self: center;
+            width: 60px;
+            height: 60px;
+            background: var(--surface);
             backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: var(--glass-border);
-            border-radius: 20px;
-            padding: 16px;
-            max-width: 60%;
-            transform: translateY(120%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .info-card.show {
-            transform: translateY(0);
-        }
-
-        .info-name {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin: 0 0 4px 0;
-        }
-
-        .info-desc {
-            font-size: 0.8rem;
-            color: #ccc;
-            line-height: 1.3;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .fab {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: var(--accent);
-            color: var(--primary);
-            border: none;
+            border-radius: 50%;
+            border: var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            margin-bottom: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: transform 0.1s;
         }
-        
-        .fab:active { transform: scale(0.9); }
 
-        /* Start Screen Overlay */
+        .compass-arrow {
+            font-size: 32px;
+            color: #ff5555;
+            transition: transform 0.1s linear;
+        }
+
+        .compass-label {
+            position: absolute;
+            top: -20px;
+            font-size: 0.8rem;
+            color: #aaa;
+            font-weight: bold;
+        }
+
+        /* Bottom Controls */
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        .info-pill {
+            background: var(--surface);
+            backdrop-filter: var(--glass-blur);
+            border: var(--border);
+            padding: 15px 25px;
+            border-radius: 20px;
+            max-width: 60%;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        .info-pill.active { opacity: 1; }
+
+        .btn-fab {
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            border: none;
+            background: #4F378B;
+            color: #D0BCFF;
+            display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn-fab:active { transform: scale(0.95); }
+        .btn-fab.active-state { background: #D0BCFF; color: #4F378B; }
+
+        /* Loader */
         #loader {
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 100%;
+            width: 100vw; height: 100vh;
             background: #000;
             z-index: 999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.8s;
+            transition: opacity 0.5s;
         }
+        .loader-spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
         
-        .start-btn {
+        #error-log {
+            color: #ff6b6b;
+            font-size: 0.8rem;
             margin-top: 20px;
-            padding: 15px 40px;
-            background: white;
-            color: black;
-            border: none;
-            border-radius: 50px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            cursor: pointer;
+            text-align: center;
+            max-width: 80%;
         }
     </style>
-
-    <!-- Import Map for Three.js -->
+    
+    <!-- Import Maps -->
     <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
     <script type="importmap">
       {
@@ -177,34 +192,47 @@
 </head>
 <body>
 
-    <!-- Loader -->
+    <!-- Loading Screen -->
     <div id="loader">
-        <h1 style="font-weight: 100; letter-spacing: 2px;">STARRY NIGHT</h1>
-        <p style="color: #666;">Rendering Universe...</p>
-        <button class="start-btn interactive" id="btn-start">ENTER</button>
+        <div class="loader-spinner"></div>
+        <h2 style="font-weight: 300; letter-spacing: 2px;">RENDERING UNIVERSE</h2>
+        <button id="force-start" class="interactive" style="margin-top:20px; padding:10px 20px; background:var(--primary); border:none; border-radius:20px; display:none;">
+            Enter Anyway
+        </button>
+        <div id="error-log"></div>
     </div>
 
-    <!-- UI Overlay -->
+    <!-- 3D Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI -->
     <div id="ui-layer">
-        <div class="header interactive">
-            <div class="pill">
-                <span class="material-symbols-rounded">rocket_launch</span>
-                <span>Starry Night</span>
-            </div>
-            <div class="pill">
-                <span id="clock" style="font-family: monospace;">00:00</span>
-            </div>
+        <!-- Top: Search -->
+        <div class="search-container interactive">
+            <span class="material-symbols-rounded search-icon">search</span>
+            <input type="text" class="search-bar" id="search-input" placeholder="Search planets, stars...">
         </div>
 
-        <div class="controls">
-            <div class="info-card interactive" id="info-panel">
-                <h3 class="info-name" id="p-name">Earth</h3>
-                <div class="info-desc" id="p-desc">Our home planet.</div>
+        <!-- Center Bottom: Compass -->
+        <div class="compass-container">
+            <div class="compass-label">N</div>
+            <span class="material-symbols-rounded compass-arrow" id="compass-arrow">navigation</span>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="controls-row">
+            <div class="info-pill interactive" id="info-box">
+                <div style="font-size: 1.2rem; color: var(--primary); font-weight: 500;" id="obj-name">Planet</div>
+                <div style="font-size: 0.85rem; opacity: 0.8;" id="obj-desc">Description</div>
             </div>
 
-            <div class="btn-group interactive">
-                <button class="fab" id="btn-gyro"><span class="material-symbols-rounded">screen_rotation</span></button>
-                <button class="fab" id="btn-reset"><span class="material-symbols-rounded">center_focus_weak</span></button>
+            <div style="display: flex; flex-direction: column;">
+                <button class="btn-fab interactive" id="btn-gyro" title="Gyroscope Mode">
+                    <span class="material-symbols-rounded">screen_rotation</span>
+                </button>
+                <button class="btn-fab interactive" id="btn-reset" title="Reset Camera">
+                    <span class="material-symbols-rounded">my_location</span>
+                </button>
             </div>
         </div>
     </div>
@@ -214,324 +242,261 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
 
-        // --- Config ---
-        const SETTINGS = {
-            starCount: 6000,
-            galaxyParticles: 4000,
-            simSpeed: 0.2
-        };
-
-        let scene, camera, renderer, controls, gyroControls;
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer;
+        let controls, gyroControls;
         let isGyro = false;
-        let objects = []; // For raycasting
-        let animatedObjects = []; // For orbit animation
+        let celestialObjects = []; // Holds { mesh, name, desc, type }
         let raycaster, mouse;
+        let galaxyParticles;
         
         const loader = document.getElementById('loader');
-        const startBtn = document.getElementById('btn-start');
-        const infoPanel = document.getElementById('info-panel');
-        const pName = document.getElementById('p-name');
-        const pDesc = document.getElementById('p-desc');
-
-        // Planet Data (Visual Scale)
-        const planets = [
-            { name: "Mercury", color: 0x999999, dist: 30, size: 2, speed: 0.04, desc: "Smallest planet." },
-            { name: "Venus",   color: 0xe6b875, dist: 50, size: 5, speed: 0.02, desc: "Runaway greenhouse effect." },
-            { name: "Earth",   color: 0x2244ff, dist: 80, size: 5.5, speed: 0.012, desc: "Supports life.", hasMoon: true },
-            { name: "Mars",    color: 0xff3300, dist: 110, size: 3, speed: 0.008, desc: "The Red Planet." },
-            { name: "Jupiter", color: 0xd9a066, dist: 180, size: 16, speed: 0.004, desc: "Gas giant.", hasMoon: true },
-            { name: "Saturn",  color: 0xe3d2b4, dist: 260, size: 14, speed: 0.003, desc: "Has rings.", hasRings: true },
-            { name: "Uranus",  color: 0xaaddff, dist: 340, size: 9, speed: 0.002, desc: "Ice giant." },
-            { name: "Neptune", color: 0x3333ff, dist: 400, size: 8, speed: 0.001, desc: "Windiest planet." }
+        const errorLog = document.getElementById('error-log');
+        const forceStartBtn = document.getElementById('force-start');
+        
+        // --- DATA ---
+        // Simplified Solar System (Distances scaled for visibility)
+        const SYSTEM_DATA = [
+            { name: "Sun", color: 0xFFDD00, size: 20, dist: 0, speed: 0, desc: "The Star." },
+            { name: "Mercury", color: 0xAAAAAA, size: 2, dist: 35, speed: 0.04, desc: "Smallest Planet." },
+            { name: "Venus", color: 0xE3BB76, size: 5, dist: 55, speed: 0.02, desc: "Hot & Dense." },
+            { name: "Earth", color: 0x2244FF, size: 5.5, dist: 80, speed: 0.015, desc: "Home.", extras: 'moon' },
+            { name: "Mars", color: 0xFF3300, size: 3, dist: 110, speed: 0.01, desc: "Red Planet." },
+            { name: "Jupiter", color: 0xD9A066, size: 15, dist: 180, speed: 0.005, desc: "Gas Giant." },
+            { name: "Saturn", color: 0xEAD6B8, size: 12, dist: 260, speed: 0.003, desc: "Ringed Planet.", extras: 'rings' },
+            { name: "Uranus", color: 0xAADDFF, size: 8, dist: 340, speed: 0.002, desc: "Ice Giant." },
+            { name: "Neptune", color: 0x3333FF, size: 7.5, dist: 400, speed: 0.001, desc: "Windy Giant." }
         ];
 
-        startBtn.addEventListener('click', () => {
-            loader.style.opacity = 0;
-            setTimeout(() => loader.style.display = 'none', 800);
-            init();
+        // --- ERROR HANDLING & INIT ---
+        window.onerror = function(msg, source, lineno) {
+            errorLog.innerHTML = `Error: ${msg} <br> (Line: ${lineno})`;
+            forceStartBtn.style.display = 'block';
+        };
+
+        if(window.location.protocol === 'file:') {
+            errorLog.innerHTML += "⚠️ Local File detected. Browsers may block 3D Assets.<br>Use a Local Server for best results.";
+            forceStartBtn.style.display = 'block';
+        }
+
+        // Force start button
+        forceStartBtn.addEventListener('click', () => {
+            loader.style.display = 'none';
         });
 
-        // Update clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        }, 1000);
+        // Initialize App
+        try {
+            init();
+            animate();
+            // Hide loader if init succeeds
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+            }, 1500);
+        } catch (e) {
+            console.error(e);
+            errorLog.innerHTML = "Critical 3D Init Failed: " + e.message;
+            forceStartBtn.style.display = 'block';
+        }
 
+        // --- THREE.JS SETUP ---
         function init() {
+            const container = document.getElementById('canvas-container');
+
             // 1. Scene
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x050505, 0.0005); // Deep space fog
+            scene.fog = new THREE.FogExp2(0x000000, 0.0003);
 
             // 2. Camera
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
-            camera.position.set(0, 60, 250);
+            camera.position.set(0, 50, 200);
 
             // 3. Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            // Very important: renderOrder
-            document.body.appendChild(renderer.domElement);
+            container.appendChild(renderer.domElement);
 
-            // 4. Lights (Make it bright enough!)
-            const ambientLight = new THREE.AmbientLight(0x555555); // Base illumination
-            scene.add(ambientLight);
-
-            const sunLight = new THREE.PointLight(0xffffff, 2.5, 1000); // The Sun
-            sunLight.position.set(0,0,0);
+            // 4. Lights
+            const ambient = new THREE.AmbientLight(0x404040, 2); 
+            scene.add(ambient);
+            const sunLight = new THREE.PointLight(0xffffff, 2, 1000);
             scene.add(sunLight);
 
-            // 5. Create Objects
-            createSun();
-            createStars();
-            createGalaxy();
-            createPlanets();
-            createAsteroidBelt();
-
-            // 6. Controls
+            // 5. Controls
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxDistance = 1000;
-
+            controls.maxDistance = 1500;
+            
             gyroControls = new DeviceOrientationControls(camera);
             gyroControls.enabled = false;
 
-            // 7. Raycaster
+            // 6. Content Creation
+            createProceduralAssets();
+            
+            // 7. Interaction
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
-
             window.addEventListener('resize', onResize);
             window.addEventListener('pointerdown', onPointerDown);
-
-            // Start Loop
-            renderer.setAnimationLoop(animate);
         }
 
-        // --- Object Creation Functions ---
-
-        function createSun() {
-            // Core
-            const geometry = new THREE.SphereGeometry(15, 32, 32);
-            const material = new THREE.MeshBasicMaterial({ color: 0xFFDD00 }); // Basic material glows self-illuminated
-            const sun = new THREE.Mesh(geometry, material);
-            sun.userData = { name: "The Sun", desc: "Type G Yellow Dwarf Star." };
-            objects.push(sun);
-            scene.add(sun);
-
-            // Glow Halo (Sprite)
-            const spriteMat = new THREE.SpriteMaterial({ 
+        // --- CONTENT GENERATION ---
+        
+        function createProceduralAssets() {
+            // A. Sun Glow (Procedural Texture)
+            const glowMat = new THREE.SpriteMaterial({ 
                 color: 0xFFAA00, 
+                map: createGradientTexture(),
                 blending: THREE.AdditiveBlending 
             });
-            const sprite = new THREE.Sprite(spriteMat);
-            sprite.scale.set(60, 60, 1);
-            scene.add(sprite);
-        }
+            const sunGlow = new THREE.Sprite(glowMat);
+            sunGlow.scale.set(80, 80, 1);
+            scene.add(sunGlow);
 
-        function createPlanets() {
-            planets.forEach(p => {
-                const group = new THREE.Group(); // Holds the planet and its rotation
+            // B. Solar System
+            SYSTEM_DATA.forEach(data => {
+                const group = new THREE.Group();
                 scene.add(group);
 
                 // Planet Mesh
-                const geo = new THREE.SphereGeometry(p.size, 32, 32);
+                const geo = new THREE.SphereGeometry(data.size, 32, 32);
                 const mat = new THREE.MeshStandardMaterial({ 
-                    color: p.color,
-                    roughness: 0.7,
-                    metalness: 0.1
+                    color: data.color, 
+                    roughness: 0.7, 
+                    metalness: 0.1,
+                    emissive: data.name === "Sun" ? 0xFFaa00 : 0x000000,
+                    emissiveIntensity: data.name === "Sun" ? 0.5 : 0
                 });
                 const mesh = new THREE.Mesh(geo, mat);
                 
-                // Initial placement
+                // Initial Position
                 const angle = Math.random() * Math.PI * 2;
-                mesh.position.set(Math.cos(angle) * p.dist, 0, Math.sin(angle) * p.dist);
-
-                // Add data for raycasting and animation
+                mesh.position.set(Math.cos(angle) * data.dist, 0, Math.sin(angle) * data.dist);
+                
+                // Store data for Reference
                 mesh.userData = { 
-                    name: p.name, desc: p.desc, 
-                    dist: p.dist, angle: angle, speed: p.speed 
+                    name: data.name, 
+                    desc: data.desc, 
+                    dist: data.dist, 
+                    angle: angle, 
+                    speed: data.speed 
                 };
-                
+
+                // Add to Global Array for Search/Raycasting
+                celestialObjects.push(mesh);
                 group.add(mesh);
-                objects.push(mesh);
-                animatedObjects.push(mesh); // Add to animation loop
 
-                // Orbit Trail (Visual Line)
-                const trailGeo = new THREE.RingGeometry(p.dist - 0.2, p.dist + 0.2, 64);
-                const trailMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.1 });
-                const trail = new THREE.Mesh(trailGeo, trailMat);
-                trail.rotation.x = Math.PI / 2;
-                scene.add(trail);
-
-                // --- Extras (Moons, Rings) ---
+                // Extras: Rings
+                if(data.extras === 'rings') {
+                    const ringGeo = new THREE.RingGeometry(data.size + 2, data.size + 10, 32);
+                    const ringMat = new THREE.MeshBasicMaterial({ color: 0xccbbcc, side: THREE.DoubleSide, transparent:true, opacity:0.6 });
+                    const ring = new THREE.Mesh(ringGeo, ringMat);
+                    ring.rotation.x = Math.PI / 2.2;
+                    mesh.add(ring);
+                }
                 
-                // Rings (Saturn)
-                if (p.hasRings) {
-                    const ringGeo = new THREE.RingGeometry(p.size + 2, p.size + 10, 32);
-                    const ringMat = new THREE.MeshBasicMaterial({ color: 0xaa9988, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
-                    const rings = new THREE.Mesh(ringGeo, ringMat);
-                    rings.rotation.x = Math.PI / 1.8; // Tilt
-                    mesh.add(rings);
+                // Extras: Moon
+                if(data.extras === 'moon') {
+                    const mGeo = new THREE.SphereGeometry(1.5, 16, 16);
+                    const mMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+                    const moon = new THREE.Mesh(mGeo, mMat);
+                    moon.position.set(10, 0, 0);
+                    mesh.add(moon);
+                    mesh.userData.moon = moon;
                 }
 
-                // Earth Extras (Moon + Satellite)
-                if (p.name === "Earth") {
-                    // Moon
-                    const moonGeo = new THREE.SphereGeometry(1.5, 16, 16);
-                    const moonMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-                    const moon = new THREE.Mesh(moonGeo, moonMat);
-                    moon.position.set(10, 0, 0);
-                    mesh.add(moon); // Add to Earth mesh so it moves with Earth
-                    
-                    // Simple Satellite
-                    const satGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                    const satMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                    const sat = new THREE.Mesh(satGeo, satMat);
-                    sat.position.set(0, 7, 0); // Polar orbit position
-                    mesh.add(sat);
-
-                    // Animation data for Moon/Sat embedded in mesh
-                    mesh.userData.hasExtras = true;
-                    mesh.userData.extras = { moon, sat };
+                // Orbit Lines
+                if(data.dist > 0) {
+                    const orbitGeo = new THREE.RingGeometry(data.dist-0.3, data.dist+0.3, 128);
+                    const orbitMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent:true, opacity:0.1 });
+                    const orbit = new THREE.Mesh(orbitGeo, orbitMat);
+                    orbit.rotation.x = Math.PI / 2;
+                    scene.add(orbit);
                 }
             });
-        }
 
-        function createAsteroidBelt() {
-            const geometry = new THREE.BufferGeometry();
-            const vertices = [];
-            
-            for(let i=0; i<1500; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                // Belt between Mars(110) and Jupiter(180) -> approx 140-160
-                const r = 130 + Math.random() * 30; 
-                const x = Math.cos(angle) * r;
-                const y = (Math.random() - 0.5) * 15; // Vertical spread
-                const z = Math.sin(angle) * r;
-                vertices.push(x, y, z);
-            }
-
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            const material = new THREE.PointsMaterial({ color: 0x888888, size: 1.2 });
-            const belt = new THREE.Points(geometry, material);
-            scene.add(belt);
-            // Add slight rotation reference
-            belt.userData = { isBelt: true, speed: 0.0005 };
-            animatedObjects.push(belt);
-        }
-
-        function createStars() {
-            const geo = new THREE.BufferGeometry();
-            const pos = [];
-            for (let i = 0; i < SETTINGS.starCount; i++) {
-                const r = 500 + Math.random() * 1500;
+            // C. Stars (Background)
+            const starsGeo = new THREE.BufferGeometry();
+            const starsPos = [];
+            for(let i=0; i<4000; i++) {
+                const r = 800 + Math.random() * 1000;
                 const theta = 2 * Math.PI * Math.random();
                 const phi = Math.acos(2 * Math.random() - 1);
-                pos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+                starsPos.push(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta), r*Math.cos(phi));
             }
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false }); // False makes them visible at distance
-            const stars = new THREE.Points(geo, mat);
-            scene.add(stars);
-        }
+            starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starsPos, 3));
+            const starsMat = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 2.5, sizeAttenuation: false, transparent: true, opacity: 0.8 });
+            const starField = new THREE.Points(starsGeo, starsMat);
+            scene.add(starField);
 
-        function createGalaxy() {
-            // Milky Way visual (Spiral of particles)
-            const geo = new THREE.BufferGeometry();
-            const pos = [];
-            const colors = [];
-            const color1 = new THREE.Color(0x8A2BE2); // Violet
-            const color2 = new THREE.Color(0x00BFFF); // Blue
-
-            for(let i=0; i < SETTINGS.galaxyParticles; i++) {
-                // Spiral Math
-                const angle = i * 0.005; 
-                const radius = i * 0.15 + 400; // Far out
-                const spread = (Math.random() - 0.5) * 100;
-                
-                const x = Math.cos(angle) * radius + (Math.random()-0.5)*50;
-                const z = Math.sin(angle) * radius + (Math.random()-0.5)*50;
-                const y = (Math.random() - 0.5) * 40;
-
-                pos.push(x, y, z);
-
-                // Mix colors
-                const mixedColor = color1.clone().lerp(color2, Math.random());
-                colors.push(mixedColor.r, mixedColor.g, mixedColor.b);
+            // D. Galaxy Particles (Spiral)
+            const gGeo = new THREE.BufferGeometry();
+            const gPos = [];
+            const gCol = [];
+            const c1 = new THREE.Color(0x8A2BE2);
+            const c2 = new THREE.Color(0x00BFFF);
+            for(let i=0; i<3000; i++) {
+                const angle = i * 0.01;
+                const r = 400 + i * 0.1;
+                const x = Math.cos(angle)*r + (Math.random()-0.5)*50;
+                const z = Math.sin(angle)*r + (Math.random()-0.5)*50;
+                const y = (Math.random()-0.5) * 50;
+                gPos.push(x,y,z);
+                const c = c1.clone().lerp(c2, Math.random());
+                gCol.push(c.r, c.g, c.b);
             }
-
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-            const mat = new THREE.PointsMaterial({ size: 3, vertexColors: true, transparent: true, opacity: 0.6 });
-            const galaxy = new THREE.Points(geo, mat);
-            scene.add(galaxy);
-            
-            // Rotate the galaxy slowly
-            galaxy.userData = { isGalaxy: true, speed: 0.0002 };
-            animatedObjects.push(galaxy);
+            gGeo.setAttribute('position', new THREE.Float32BufferAttribute(gPos, 3));
+            gGeo.setAttribute('color', new THREE.Float32BufferAttribute(gCol, 3));
+            const gMat = new THREE.PointsMaterial({ vertexColors:true, size:2, transparent:true, opacity:0.6 });
+            galaxyParticles = new THREE.Points(gGeo, gMat);
+            scene.add(galaxyParticles);
         }
 
-        // --- Interaction & Animation ---
-
-        function onPointerDown(event) {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-
-            if (intersects.length > 0) {
-                const target = intersects[0].object;
-                showInfo(target.userData.name, target.userData.desc);
-                // Optional: Snap camera to look at object? 
-                // controls.target.copy(target.position);
-            } else {
-                hideInfo();
-            }
+        // Helper: Create Gradient Canvas Texture for "Glow"
+        function createGradientTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const g = ctx.createRadialGradient(32,32,0,32,32,32);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.4, 'rgba(255,200,100,0.4)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0,0,64,64);
+            return new THREE.CanvasTexture(canvas);
         }
 
-        function showInfo(name, desc) {
-            pName.innerText = name;
-            pDesc.innerText = desc;
-            infoPanel.classList.add('show');
-        }
-
-        function hideInfo() {
-            infoPanel.classList.remove('show');
-        }
-
+        // --- ANIMATION ---
         function animate() {
-            // 1. Planet Orbits
-            animatedObjects.forEach(obj => {
-                if (obj.userData.speed) {
-                    if (obj.userData.isBelt || obj.userData.isGalaxy) {
-                        // Simple Rotation for belt/galaxy
-                        obj.rotation.y += obj.userData.speed;
-                    } else {
-                        // Orbital mechanics
-                        obj.userData.angle += obj.userData.speed * SETTINGS.simSpeed;
-                        obj.position.x = Math.cos(obj.userData.angle) * obj.userData.dist;
-                        obj.position.z = Math.sin(obj.userData.angle) * obj.userData.dist;
-                        obj.rotation.y += 0.02; // Self rotation
+            requestAnimationFrame(animate);
 
-                        // Extras Animation (Moon orbit)
-                        if(obj.userData.hasExtras) {
-                            const time = Date.now() * 0.001;
-                            // Moon orbit around Earth
-                            obj.userData.extras.moon.position.x = Math.cos(time) * 10;
-                            obj.userData.extras.moon.position.z = Math.sin(time) * 10;
-                            // Satellite tumbling
-                            obj.userData.extras.sat.rotation.x += 0.05;
-                            obj.userData.extras.sat.rotation.y += 0.05;
-                        }
+            // 1. Orbit Animation
+            const time = Date.now() * 0.0001;
+            celestialObjects.forEach(obj => {
+                if(obj.userData.speed > 0) {
+                    obj.userData.angle += obj.userData.speed * 0.2; // Sim Speed
+                    obj.position.x = Math.cos(obj.userData.angle) * obj.userData.dist;
+                    obj.position.z = Math.sin(obj.userData.angle) * obj.userData.dist;
+                    obj.rotation.y += 0.01;
+                    
+                    // Moon rotation
+                    if(obj.userData.moon) {
+                        obj.userData.moon.position.x = Math.cos(time * 20) * 10;
+                        obj.userData.moon.position.z = Math.sin(time * 20) * 10;
                     }
                 }
             });
 
-            // 2. Controls
-            if (isGyro && gyroControls.enabled) {
+            // 2. Galaxy Rotation
+            if(galaxyParticles) galaxyParticles.rotation.y += 0.0002;
+
+            // 3. Compass Logic
+            updateCompass();
+
+            // 4. Controls
+            if(isGyro && gyroControls.enabled) {
                 gyroControls.update();
             } else {
                 controls.update();
@@ -540,28 +505,95 @@
             renderer.render(scene, camera);
         }
 
+        function updateCompass() {
+            // Get camera direction
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            // Calculate angle on XZ plane
+            const angle = Math.atan2(dir.x, dir.z); // Returns radians
+            const deg = angle * (180 / Math.PI);
+            
+            // Rotate the compass arrow
+            // CSS rotation: 0 is Up (North). ThreeJS 0,0,1 is South.
+            const arrow = document.getElementById('compass-arrow');
+            // Invert logic slightly for visual match
+            if(arrow) arrow.style.transform = `rotate(${deg}deg)`;
+        }
+
+        // --- INTERACTION ---
+
         function onResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // --- Buttons ---
-        document.getElementById('btn-reset').addEventListener('click', () => {
-            controls.reset();
-            camera.position.set(0, 60, 250);
-            camera.lookAt(0,0,0);
-            isGyro = false;
-            gyroControls.enabled = false;
-            controls.enabled = true;
-            hideInfo();
+        function onPointerDown(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(celestialObjects);
+
+            if(intersects.length > 0) {
+                const target = intersects[0].object;
+                selectObject(target);
+            } else {
+                // Clicked empty space
+                document.getElementById('info-box').classList.remove('active');
+            }
+        }
+
+        function selectObject(target) {
+            document.getElementById('obj-name').innerText = target.userData.name;
+            document.getElementById('obj-desc').innerText = target.userData.desc;
+            document.getElementById('info-box').classList.add('active');
+            
+            // Optional: Move controls target to object?
+            // controls.target.copy(target.position);
+        }
+
+        // --- SEARCH FUNCTIONALITY ---
+        const searchInput = document.getElementById('search-input');
+        
+        searchInput.addEventListener('change', () => {
+            const query = searchInput.value.toLowerCase();
+            const found = celestialObjects.find(obj => obj.userData.name.toLowerCase() === query);
+            
+            if(found) {
+                selectObject(found);
+                
+                // Move camera near the object
+                const offset = 30;
+                camera.position.set(
+                    found.position.x + offset, 
+                    found.position.y + 20, 
+                    found.position.z + offset
+                );
+                controls.target.copy(found.position);
+                camera.lookAt(found.position);
+                
+                // If in gyro mode, this is tricky, but let's just point camera
+                if(isGyro) {
+                    alert(`Found ${found.userData.name}. Turn around to find it!`);
+                }
+            } else {
+                alert("Object not found. Try 'Earth', 'Mars', 'Sun'...");
+            }
+            searchInput.blur();
         });
 
-        document.getElementById('btn-gyro').addEventListener('click', async () => {
-            if (!isGyro) {
+        // --- GYRO TOGGLE ---
+        const btnGyro = document.getElementById('btn-gyro');
+        
+        btnGyro.addEventListener('click', async () => {
+            if(!isGyro) {
+                // Request Permission (iOS)
                 if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') enableGyro();
+                    try {
+                        const perm = await DeviceOrientationEvent.requestPermission();
+                        if(perm === 'granted') enableGyro();
+                        else alert("Permission Denied");
+                    } catch(e) { alert(e); }
                 } else {
                     enableGyro();
                 }
@@ -574,14 +606,28 @@
             isGyro = true;
             controls.enabled = false;
             gyroControls.enabled = true;
-            showInfo("AR Mode", "Move device to explore.");
+            btnGyro.classList.add('active-state');
+            document.getElementById('obj-name').innerText = "AR Mode";
+            document.getElementById('obj-desc').innerText = "Move device to explore sky";
+            document.getElementById('info-box').classList.add('active');
         }
 
         function disableGyro() {
             isGyro = false;
             gyroControls.enabled = false;
             controls.enabled = true;
+            btnGyro.classList.remove('active-state');
+            // Reset camera tilt
+            camera.lookAt(0,0,0);
         }
+
+        // Reset Button
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            controls.reset();
+            camera.position.set(0, 50, 200);
+            disableGyro();
+            document.getElementById('info-box').classList.remove('active');
+        });
 
     </script>
 </body>
