@@ -1,699 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stellar View</title>
-    <style>
-        :root { --glass: rgba(15, 20, 30, 0.6); --highlight: #00d2ff; }
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'SF Pro Display', Roboto, sans-serif; color: white; user-select: none; -webkit-user-select: none; }
-        
-        /* Canvas */
-        #sky-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Pocket Sky – Live</title>
 
-        /* UI Overlay */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
-        
-        /* Top Bar */
-        .top-bar { padding: 15px; display: flex; gap: 10px; pointer-events: auto; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); }
-        
-        /* Search Input */
-        .search-box { position: relative; flex-grow: 1; }
-        input#search { 
-            width: 100%; padding: 12px 20px; 
-            border-radius: 25px; border: 1px solid rgba(255,255,255,0.2); 
-            background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            color: white; font-size: 16px; outline: none; transition: 0.3s;
-        }
-        input#search:focus { border-color: var(--highlight); background: rgba(0,0,0,0.8); }
-        
-        /* Search Results Dropdown */
-        #results { 
-            position: absolute; top: 50px; left: 0; right: 0; 
-            background: rgba(10, 10, 15, 0.95); border-radius: 15px; 
-            max-height: 40vh; overflow-y: auto; display: none; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .result-item { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; justify-content: space-between; }
-        .result-item span.type { font-size: 0.8em; color: #888; text-transform: uppercase; }
-        .result-item:active { background: #333; }
+<!-- ================== STYLE ================== -->
+<style>
+:root{
+  --glass: rgba(255,255,255,0.12);
+  --accent: #4fd1ff;
+  --danger: #ff5c5c;
+}
+html,body{margin:0; padding:0; background:#02030a; color:white; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden}
+canvas{display:block}
 
-        /* HUD Footer */
-        .hud-footer { 
-            padding: 20px; text-align: center; 
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            pointer-events: auto;
-        }
-        .info-pill { 
-            display: inline-block; padding: 8px 16px; 
-            background: var(--glass); border-radius: 20px; 
-            font-size: 12px; letter-spacing: 1px; color: #ccc;
-            backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-calib {
-            background: transparent; border: 1px solid #555; color: #888; padding: 5px 10px; border-radius: 10px; margin-top: 10px; font-size: 10px;
-        }
+/* Glass UI */
+.glass{background:linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.05)); backdrop-filter: blur(12px); border:1px solid rgba(255,255,255,0.15)}
 
-        /* Target Reticle */
-        #reticle { 
-            position: absolute; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); 
-            width: 60px; height: 60px; 
-            border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 50%; 
-            pointer-events: none; opacity: 0.5; transition: 0.3s;
-        }
-        #reticle.locked { border-color: var(--highlight); border-style: solid; box-shadow: 0 0 20px var(--highlight); opacity: 1; }
-        
-        /* 3D Target Arrow */
-        #target-arrow {
-            position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; pointer-events: none; display: none;
-        }
-        .arrow-graphic {
-            width: 0; height: 0; 
-            border-left: 15px solid transparent; border-right: 15px solid transparent; border-bottom: 30px solid var(--highlight);
-            transform: translate(-50%, -100px); /* Push arrow away from center */
-        }
+/* Start screen */
+#start{position:fixed; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:99; background:radial-gradient(circle at top,#0a1430,#02030a)}
+#start h1{letter-spacing:4px; font-weight:300}
+#start p{opacity:.7; max-width:280px; text-align:center}
+#start button{margin-top:25px; padding:16px 46px; border-radius:40px; border:none; background:linear-gradient(135deg,#4fd1ff,#667bff); color:black; font-weight:700; font-size:1.05rem}
 
-        /* Intro Modal */
-        #intro { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; z-index: 999; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            text-align: center; padding: 20px; box-sizing: border-box;
-        }
-        h1 { margin: 0; font-weight: 200; font-size: 3rem; background: linear-gradient(45deg, #fff, #00d2ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p.sub { color: #666; margin-bottom: 40px; }
-        button.primary-btn { 
-            padding: 18px 40px; background: white; color: black; border: none; 
-            border-radius: 40px; font-weight: bold; font-size: 18px; 
-            box-shadow: 0 0 30px rgba(255,255,255,0.2); transition: transform 0.2s; cursor: pointer;
-        }
-        button.primary-btn:active { transform: scale(0.95); }
+/* HUD */
+#hud{position:fixed; inset:0; pointer-events:none}
+#top{position:absolute; top:14px; left:14px; right:14px; display:flex; gap:12px; pointer-events:auto}
+#search{flex:1; padding:14px 18px; border-radius:30px; background:var(--glass); border:1px solid rgba(255,255,255,0.2); color:white; outline:none}
+#results{position:absolute; top:60px; left:14px; right:14px; max-height:220px; overflow:auto; display:none}
+.result{padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.1)}
+.result:active{background:rgba(255,255,255,0.08)}
 
-    </style>
+/* Compass */
+#compass{position:absolute; bottom:24px; left:50%; transform:translateX(-50%); width:130px; height:130px; border-radius:50%; display:flex; align-items:center; justify-content:center}
+#needle{width:4px; height:48px; background:linear-gradient(to top,var(--danger),white); border-radius:2px; transform-origin:50% 90%}
+#cardinal{position:absolute; font-size:12px; opacity:.75}
+
+/* Target */
+#target{position:absolute; width:56px; height:56px; border:2px solid var(--accent); border-radius:50%; transform:translate(-50%,-50%); display:none}
+#arrow{position:absolute; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-bottom:26px solid var(--accent); transform-origin:50% 120%; display:none}
+
+.label{position:absolute; font-size:11px; opacity:.75; white-space:nowrap; text-shadow:0 0 4px black; pointer-events:none}
+</style>
 </head>
 <body>
 
-    <!-- Intro -->
-    <div id="intro">
-        <h1>STELLAR</h1>
-        <p class="sub">AR Sky Planetarium</p>
-        <button class="primary-btn" id="start-btn">Begin Stargazing</button>
-        <p style="font-size: 12px; color: #444; margin-top: 20px;">Requires Device Orientation & GPS permissions.<br>Swipe screen horizontally to calibrate compass.</p>
-    </div>
+<!-- START -->
+<div id="start">
+  <h1>POCKET SKY</h1>
+  <p>Move your phone to explore the real sky in real time.<br>Compass & location required.</p>
+  <button id="go">Start</button>
+</div>
 
-    <!-- Main UI -->
-    <div id="ui-layer">
-        <div class="top-bar">
-            <div class="search-box">
-                <input type="text" id="search" placeholder="Search stars, planets..." autocomplete="off">
-                <div id="results"></div>
-            </div>
-        </div>
-        
-        <div id="reticle"></div>
-        <div id="target-arrow"><div class="arrow-graphic"></div></div>
+<!-- HUD -->
+<div id="hud">
+  <div id="top">
+    <input id="search" placeholder="Search stars, planets…" />
+  </div>
+  <div id="results" class="glass"></div>
+  <div id="target"></div>
+  <div id="arrow"></div>
 
-        <div class="hud-footer">
-            <div class="info-pill" id="hud-text">Waiting for GPS...</div>
-            <br>
-            <button class="btn-calib" id="reset-calib">Reset Calibration</button>
-        </div>
-    </div>
+  <div id="compass" class="glass">
+    <div id="needle"></div>
+    <div id="cardinal">N</div>
+  </div>
+</div>
 
-    <script type="module">
-        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+<!-- ================== SCRIPT ================== -->
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-        // --- GLOBAL VARIABLES ---
-        let scene, camera, renderer;
-        let starGroup, constellationGroup, planetGroup, labelsGroup;
-        let deviceControls = { alpha: 0, beta: 90, gamma: 0 }; // Default looking at horizon
-        let orientationOffset = 0; // User manual calibration
-        let userLat = 30; // Default lat
-        let userLon = 0;
-        let isRunning = false;
-        let celestialObjects = []; // Search index
-        let targetObject = null;
-        
-        // --- CONSTANTS ---
-        const R_CELESTIAL = 500; // Distance of stars
-        const R_PLANET = 450;
-        const RAD = Math.PI / 180;
-        
-        // --- INIT ---
-        const startBtn = document.getElementById('start-btn');
-        startBtn.addEventListener('click', async () => {
-            // 1. Request Orientation (iOS 13+)
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const response = await DeviceOrientationEvent.requestPermission();
-                    if (response !== 'granted') return alert("Orientation permission is required.");
-                } catch (e) { console.error(e); }
-            }
-            
-            // 2. Request Location
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        userLat = pos.coords.latitude;
-                        userLon = pos.coords.longitude;
-                        updateLocationDisplay();
-                        updateSkyCoords();
-                    },
-                    (err) => {
-                        console.warn("GPS denied, using default.");
-                        updateLocationDisplay();
-                    }
-                );
-            }
+let scene,camera,renderer,sky;
+let labels=[], objects=[], target=null;
+let lat=0, lon=0;
 
-            // 3. Start App
-            document.getElementById('intro').style.display = 'none';
-            isRunning = true;
-            window.addEventListener('deviceorientation', handleOrientation);
-            initThreeJS();
-        });
+/* ---------- INIT ---------- */
+init();
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x02030a);
 
-        function updateLocationDisplay() {
-            document.getElementById('hud-text').innerText = 
-                `Lat: ${userLat.toFixed(2)}° | Lon: ${userLon.toFixed(2)}°`;
-        }
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,2000);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(innerWidth,innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-        // --- THREE.JS SETUP ---
-        function initThreeJS() {
-            // Scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x05070a); // Deep dark blue/black
-            
-            // Fog to hide bottom edges slightly
-            scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+  sky=new THREE.Group(); scene.add(sky);
 
-            // Camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-            
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
-            document.body.appendChild(renderer.domElement);
-            renderer.domElement.id = "sky-canvas";
+  createStars();
+  createSunMoon();
 
-            // Groups
-            // We have a hierarchy:
-            // World (Rotated by Latitude) -> Sky (Rotated by Time) -> Stars/Planets
-            starGroup = new THREE.Group();
-            const skyContainer = new THREE.Group(); // Rotates for Time (RA)
-            const worldContainer = new THREE.Group(); // Rotates for Latitude (Dec)
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
 
-            scene.add(worldContainer);
-            worldContainer.add(skyContainer);
-            skyContainer.add(starGroup);
-            
-            // Globals for rotation logic
-            window.skyContainer = skyContainer;
-            window.worldContainer = worldContainer;
+  animate();
+}
 
-            // Content
-            createStars(starGroup);
-            createConstellations(starGroup);
-            createSolarSystem(starGroup);
-            createGrid(starGroup);
+/* ---------- ASTRONOMY ---------- */
+function gst(){
+  const d=(Date.now()-Date.UTC(2000,0,1,12))/86400000;
+  return (18.697374558+24.06570982441908*d)%24;
+}
 
-            // Event Listeners
-            window.addEventListener('resize', onWindowResize);
-            
-            // Interaction
-            setupTouchGestures();
+function alignSky(){
+  const lst=(gst()+lon/15)*15*Math.PI/180;
+  sky.rotation.y=-lst;
+  sky.rotation.x=THREE.MathUtils.degToRad(lat-90);
+}
 
-            updateSkyCoords(); // Initial alignment
-            animate();
-        }
+function vec(ra,dec,r=500){
+  ra*=15*Math.PI/180; dec*=Math.PI/180;
+  return new THREE.Vector3(
+    -r*Math.cos(dec)*Math.sin(ra),
+     r*Math.sin(dec),
+    -r*Math.cos(dec)*Math.cos(ra)
+  );
+}
 
-        // --- DATA GENERATION ---
+/* ---------- CONTENT ---------- */
+function createStars(){
+  const tex=document.createElement('canvas'); tex.width=32; tex.height=32;
+  const c=tex.getContext('2d');
+  const g=c.createRadialGradient(16,16,0,16,16,16);
+  g.addColorStop(0,'white'); g.addColorStop(1,'transparent');
+  c.fillStyle=g; c.fillRect(0,0,32,32);
+  const t=new THREE.CanvasTexture(tex);
 
-        // Helper: Create Text Label Sprite
-        function createLabel(text, size = 24, color = 'white') {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.font = `Bold ${size}px Arial`;
-            const metrics = ctx.measureText(text);
-            const w = metrics.width + 10;
-            const h = size + 10;
-            canvas.width = w;
-            canvas.height = h;
-            
-            // Shadow for readability
-            ctx.shadowColor = "black";
-            ctx.shadowBlur = 4;
-            ctx.fillStyle = color;
-            ctx.font = `Bold ${size}px Arial`;
-            ctx.fillText(text, 5, size); // padding
+  const stars=[
+    ['Sirius',6.75,-16.7,-1.46],['Canopus',6.4,-52.7,-0.7],['Arcturus',14.26,19.1,-0.05],
+    ['Vega',18.62,38.78,0.03],['Capella',5.27,46,0.08],['Rigel',5.24,-8.2,0.13],
+    ['Betelgeuse',5.92,7.4,0.5],['Altair',19.85,8.9,0.76],['Polaris',2.53,89.26,1.98]
+  ];
 
-            const tex = new THREE.CanvasTexture(canvas);
-            const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
-            const sprite = new THREE.Sprite(mat);
-            // Scale sprite to be readable in 3D
-            const scale = 0.5 * (size / 10);
-            sprite.scale.set(scale * (w/h), scale, 1);
-            return sprite;
-        }
+  stars.forEach(s=>{
+    const m=new THREE.SpriteMaterial({map:t});
+    const sp=new THREE.Sprite(m);
+    const p=vec(s[1],s[2]); sp.position.copy(p);
+    sp.scale.setScalar((3-s[3])*2);
+    sky.add(sp);
+    objects.push({name:s[0],pos:p});
+    label(s[0],p);
+  });
+}
 
-        // Convert RA (hours)/Dec (degrees) to XYZ on unit sphere
-        function celestialPos(ra, dec, radius) {
-            const phi = (ra * 15) * RAD; // RA to Longitude
-            const theta = dec * RAD;     // Dec to Latitude
-            // ThreeJS coordinate mapping (Y is Celestial North)
-            const x = radius * Math.cos(theta) * Math.sin(phi);
-            const y = radius * Math.sin(theta);
-            const z = radius * Math.cos(theta) * Math.cos(phi);
-            return new THREE.Vector3(-x, y, -z); // Invert X/Z for inside viewing
-        }
+function createSunMoon(){
+  const d=new Date(); const day=(d-Date.UTC(d.getFullYear(),0,0))/86400000;
+  const ra=(day/365.25)*24; const dec=23.44*Math.sin(day/365.25*2*Math.PI);
 
-        function createStars(group) {
-            // Simplified Bright Star Catalog
-            const stars = [
-                {n:"Sirius", r:6.75, d:-16.7, m:-1.4}, {n:"Canopus", r:6.4, d:-52.7, m:-0.7},
-                {n:"Arcturus", r:14.26, d:19.1, m:-0.05}, {n:"Rigil Kent", r:14.66, d:-60.8, m:-0.01},
-                {n:"Vega", r:18.62, d:38.78, m:0.03}, {n:"Capella", r:5.27, d:46.0, m:0.08},
-                {n:"Rigel", r:5.24, d:-8.2, m:0.12}, {n:"Procyon", r:7.65, d:5.2, m:0.34},
-                {n:"Betelgeuse", r:5.92, d:7.4, m:0.5}, {n:"Achernar", r:1.63, d:-57.2, m:0.46},
-                {n:"Hadar", r:14.06, d:-60.3, m:0.6}, {n:"Altair", r:19.85, d:8.87, m:0.77},
-                {n:"Aldebaran", r:4.6, d:16.5, m:0.85}, {n:"Antares", r:16.49, d:-26.4, m:0.96},
-                {n:"Spica", r:13.42, d:-11.16, m:0.98}, {n:"Pollux", r:7.76, d:28.0, m:1.14},
-                {n:"Fomalhaut", r:22.96, d:-29.6, m:1.16}, {n:"Deneb", r:20.69, d:45.28, m:1.25},
-                {n:"Regulus", r:10.14, d:11.97, m:1.35}, {n:"Castor", r:7.58, d:31.8, m:1.58},
-                {n:"Polaris", r:2.53, d:89.26, m:1.98}, {n:"Bellatrix", r:5.42, d:6.3, m:1.6}
-            ];
+  const sun=new THREE.Mesh(new THREE.SphereGeometry(14,32,32),new THREE.MeshBasicMaterial({color:0xffdd66}));
+  sun.position.copy(vec(ra,dec,420)); sky.add(sun);
+  objects.push({name:'Sun',pos:sun.position}); label('Sun',sun.position);
 
-            // 1. Background Dust
-            const bgGeo = new THREE.BufferGeometry();
-            const bgPos = [];
-            for(let i=0; i<3000; i++) {
-                const vec = new THREE.Vector3().randomDirection().multiplyScalar(R_CELESTIAL);
-                bgPos.push(vec.x, vec.y, vec.z);
-            }
-            bgGeo.setAttribute('position', new THREE.Float32BufferAttribute(bgPos, 3));
-            const bgMat = new THREE.PointsMaterial({ color: 0x555555, size: 1.2, sizeAttenuation: false });
-            group.add(new THREE.Points(bgGeo, bgMat));
+  const moon=new THREE.Mesh(new THREE.SphereGeometry(9,32,32),new THREE.MeshLambertMaterial({color:0xddd}));
+  moon.position.copy(vec((ra+12)%24,-dec,380)); sky.add(moon);
+  objects.push({name:'Moon',pos:moon.position}); label('Moon',moon.position);
+}
 
-            // 2. Bright Stars (Sprites with glow)
-            const loader = new THREE.TextureLoader();
-            // Programmatic circle texture
-            const cvs = document.createElement('canvas'); cvs.width=64; cvs.height=64;
-            const ctx = cvs.getContext('2d');
-            const g = ctx.createRadialGradient(32,32,0,32,32,32);
-            g.addColorStop(0, 'white'); g.addColorStop(0.2, 'rgba(255,255,255,0.8)'); g.addColorStop(0.5, 'rgba(200,220,255,0.2)'); g.addColorStop(1, 'transparent');
-            ctx.fillStyle = g; ctx.fillRect(0,0,64,64);
-            const tex = new THREE.CanvasTexture(cvs);
-            const starMat = new THREE.SpriteMaterial({ map: tex, color: 0xffffff });
+function label(text,pos){
+  const d=document.createElement('div'); d.className='label'; d.textContent=text;
+  document.body.appendChild(d); labels.push({d,pos});
+}
 
-            stars.forEach(s => {
-                const pos = celestialPos(s.r, s.d, R_CELESTIAL);
-                
-                // Visual Sprite
-                const sprite = new THREE.Sprite(starMat);
-                sprite.position.copy(pos);
-                const scale = Math.max(1, 4 - s.m) * 4; 
-                sprite.scale.set(scale, scale, 1);
-                group.add(sprite);
+/* ---------- SENSORS ---------- */
+document.getElementById('go').onclick=async()=>{
+  if(DeviceOrientationEvent?.requestPermission){ await DeviceOrientationEvent.requestPermission(); }
+  navigator.geolocation.getCurrentPosition(p=>{lat=p.coords.latitude; lon=p.coords.longitude; alignSky();});
+  window.addEventListener('deviceorientation',orient);
+  document.getElementById('start').remove();
+};
 
-                // Label
-                const label = createLabel(s.n, 16, '#aaaaaa');
-                label.position.copy(pos).multiplyScalar(0.98); // Slightly closer
-                group.add(label);
+const qFix=new THREE.Quaternion(-Math.sqrt(.5),0,0,Math.sqrt(.5));
+function orient(e){
+  if(e.alpha==null) return;
+  const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(
+    THREE.MathUtils.degToRad(e.beta),
+    THREE.MathUtils.degToRad(e.alpha),
+    -THREE.MathUtils.degToRad(e.gamma),'YXZ'));
+  camera.quaternion.copy(q).multiply(qFix);
+}
 
-                celestialObjects.push({ name: s.n, type: 'Star', pos: pos, obj: sprite });
-            });
-        }
+/* ---------- SEARCH ---------- */
+const box=document.getElementById('results');
+document.getElementById('search').oninput=e=>{
+  box.innerHTML=''; const v=e.target.value.toLowerCase();
+  if(v.length<2){box.style.display='none';return}
+  objects.filter(o=>o.name.toLowerCase().includes(v)).forEach(o=>{
+    const d=document.createElement('div'); d.className='result'; d.textContent=o.name;
+    d.onclick=()=>{target=o; box.style.display='none'};
+    box.appendChild(d);
+  }); box.style.display='block';
+};
 
-        function createSolarSystem(group) {
-            const now = new Date();
-            
-            // SIMPLIFIED EPHEMERIS (Good for 2024-2026 roughly, or dynamic calc)
-            // We calculate Day of Year (d)
-            const start = new Date(now.getFullYear(), 0, 0);
-            const diff = now - start;
-            const D = diff / (1000 * 60 * 60 * 24); // Days since Jan 1
-            const Y = now.getFullYear();
+/* ---------- LOOP ---------- */
+function animate(){
+  requestAnimationFrame(animate);
 
-            // 1. SUN (Approximation)
-            // Longitude increases ~1 deg/day
-            const daysSinceEquinox = D - 80; // approx March 20
-            const sunRA_deg = daysSinceEquinox * (360/365.25);
-            const sunRA = (sunRA_deg / 15) % 24;
-            const sunDec = 23.44 * Math.sin(sunRA_deg * RAD);
-            
-            const sunPos = celestialPos(sunRA, sunDec, R_PLANET);
-            
-            const sunMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(15, 32, 32),
-                new THREE.MeshBasicMaterial({ color: 0xffdd00 })
-            );
-            sunMesh.position.copy(sunPos);
-            
-            // Sun Glow
-            const glow = new THREE.Sprite(new THREE.SpriteMaterial({ 
-                map: new THREE.CanvasTexture(generateGlow(255, 200, 0)), 
-                color: 0xffaa00, blending: THREE.AdditiveBlending 
-            }));
-            glow.scale.set(100, 100, 1);
-            sunMesh.add(glow);
-            group.add(sunMesh);
-            
-            celestialObjects.push({ name: "Sun", type: "Star", pos: sunPos });
-            group.add(createLabel("Sun", 20, '#ffdd00').translateX(sunPos.x).translateY(sunPos.y).translateZ(sunPos.z));
+  labels.forEach(l=>{
+    const v=l.pos.clone().applyEuler(sky.rotation).project(camera);
+    if(v.z<1){
+      l.d.style.display='block';
+      l.d.style.transform=`translate(${(v.x*.5+.5)*innerWidth}px,${(-v.y*.5+.5)*innerHeight}px)`;
+    }else l.d.style.display='none';
+  });
 
-            // 2. MOON (Rough)
-            // Moon moves ~13 deg/day. 
-            // Full moon is opposite sun. New moon is with sun.
-            // This is a placeholder logic for visual "realism" without 5kb of math
-            const lunarCycle = 29.5;
-            const moonAge = (D % lunarCycle);
-            const moonOffsetDeg = (moonAge / lunarCycle) * 360;
-            const moonRA = (sunRA + (moonOffsetDeg/15)) % 24;
-            const moonDec = sunDec * -1; // Rough approximation
-            const moonPos = celestialPos(moonRA, moonDec, R_PLANET);
+  if(target){
+    const v=target.pos.clone().applyEuler(sky.rotation).project(camera);
+    const t=document.getElementById('target'); const a=document.getElementById('arrow');
+    if(v.z<1){
+      t.style.display='block'; a.style.display='none';
+      t.style.left=(v.x*.5+.5)*innerWidth+'px';
+      t.style.top=(-v.y*.5+.5)*innerHeight+'px';
+    }else{
+      t.style.display='none'; a.style.display='block';
+      const dir=target.pos.clone().applyQuaternion(camera.quaternion.clone().invert());
+      a.style.left='50%'; a.style.top='50%';
+      a.style.transform=`translate(-50%,-50%) rotate(${Math.atan2(dir.y,dir.x)-Math.PI/2}rad)`;
+    }
+  }
 
-            const moonMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(8, 16, 16),
-                new THREE.MeshLambertMaterial({ color: 0xffffff })
-            );
-            moonMesh.position.copy(moonPos);
-            // Light the moon from the sun
-            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-            dirLight.position.copy(sunPos);
-            group.add(dirLight);
-            group.add(new THREE.AmbientLight(0x222222));
-            
-            group.add(moonMesh);
-            celestialObjects.push({ name: "Moon", type: "Moon", pos: moonPos });
-            const mLabel = createLabel("Moon", 20, '#ffffff');
-            mLabel.position.copy(moonPos).multiplyScalar(0.95);
-            group.add(mLabel);
+  // Compass
+  const f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+  const az=Math.atan2(f.x,f.z);
+  document.getElementById('needle').style.transform=`rotate(${az}rad)`;
 
-            // 3. PLANETS (Simplified RA/Dec for current epoch - Mid 2024/2025)
-            // Adding a few planets manually for "Realism" feel. 
-            // In a real app, use astronomy-engine.js
-            const planets = [
-                { n: "Jupiter", ra: 4.5, dec: 21, c: 0xffaa88 },  // Approx Taurus
-                { n: "Mars", ra: 2.0, dec: 12, c: 0xff4433 },     // Approx Aries
-                { n: "Saturn", ra: 23, dec: -10, c: 0xeeddaa },   // Approx Aquarius
-                { n: "Venus", ra: (sunRA + 1.5)%24, dec: sunDec+2, c: 0xffffff } // Morning/Evening star
-            ];
-
-            planets.forEach(p => {
-                const pos = celestialPos(p.ra, p.dec, R_PLANET);
-                const mesh = new THREE.Mesh(
-                    new THREE.SphereGeometry(3, 16, 16),
-                    new THREE.MeshBasicMaterial({ color: p.c })
-                );
-                mesh.position.copy(pos);
-                
-                // Add ring for saturn
-                if(p.n === "Saturn") {
-                    const ringGeo = new THREE.RingGeometry(4, 6, 32);
-                    const ringMat = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
-                    const ring = new THREE.Mesh(ringGeo, ringMat);
-                    ring.rotation.x = 1.5;
-                    mesh.add(ring);
-                }
-
-                group.add(mesh);
-                const pl = createLabel(p.n, 14, '#ccaacc');
-                pl.position.copy(pos).multiplyScalar(0.96);
-                group.add(pl);
-                celestialObjects.push({ name: p.n, type: "Planet", pos: pos });
-            });
-        }
-
-        function createConstellations(group) {
-            // Simplified Orion
-            const orion = [
-                [5.92, 7.4], [5.6, 7.4], [5.24, -8.2], [5.79, -9.6], [5.92, 7.4], // Outer box
-                [5.6, -1.9], [5.69, -1.2], [5.53, -2.6] // Belt
-            ];
-            // Big Dipper
-            const dipper = [
-               [11.03, 61.75], [11.09, 56.38], [11.89, 53.69], [12.25, 57.03], // Bowl
-               [12.25, 57.03], [12.9, 55.95], [13.39, 54.92], [13.79, 49.31] // Handle
-            ];
-
-            const mat = new THREE.LineBasicMaterial({ color: 0x334455, transparent: true, opacity: 0.5 });
-
-            [orion, dipper].forEach(constellation => {
-                const points = constellation.map(c => celestialPos(c[0], c[1], R_CELESTIAL));
-                const geo = new THREE.BufferGeometry().setFromPoints(points);
-                group.add(new THREE.Line(geo, mat));
-            });
-        }
-        
-        function createGrid(group) {
-            const grid = new THREE.PolarGridHelper(R_CELESTIAL, 24, 8, 64, 0x222233, 0x111122);
-            group.add(grid);
-        }
-
-        function generateGlow(r,g,b) {
-            const c = document.createElement('canvas'); c.width=64; c.height=64;
-            const ctx = c.getContext('2d');
-            const grd = ctx.createRadialGradient(32,32,0,32,32,32);
-            grd.addColorStop(0, `rgba(${r},${g},${b},1)`);
-            grd.addColorStop(1, 'transparent');
-            ctx.fillStyle=grd; ctx.fillRect(0,0,64,64);
-            return c;
-        }
-
-        // --- MATH & ORIENTATION ---
-
-        function updateSkyCoords() {
-            if(!window.skyContainer || !window.worldContainer) return;
-            
-            // 1. Latitude Tilt
-            // At Lat 90 (North Pole), Celestial Pole is overhead (Z).
-            // At Lat 0 (Equator), Celestial Pole is at Horizon (Y).
-            // ThreeJS Default: Y is up.
-            // We rotate the "World" container.
-            // Angle = 90 - Latitude.
-            const latRad = (90 - userLat) * RAD;
-            window.worldContainer.rotation.x = latRad; 
-
-            // 2. Time Rotation (Sidereal Time)
-            // Rotate SkyContainer around the celestial pole (Y axis of WorldContainer).
-            const now = new Date();
-            // Greenwich Sidereal Time approx
-            // J2000
-            const J2000 = new Date('2000-01-01T12:00:00Z').getTime();
-            const d = (now.getTime() - J2000) / 86400000;
-            const GMST = 18.697 + 24.0657 * d;
-            // Local Sidereal Time
-            const LST = GMST + (userLon / 15);
-            // Convert to radians (1h = 15deg)
-            const rot = (LST * 15) * RAD;
-            
-            // Align: -rot because earth spins counter-clockwise, sky appears to move clockwise
-            window.skyContainer.rotation.y = -rot - (Math.PI/2); 
-        }
-
-        function handleOrientation(e) {
-            if(!e.alpha && !e.beta) return;
-            
-            // Smooth data (simple lerp)
-            // Note: Euler angles suffer gimbal lock, but for phone viewing roughly works.
-            // For production, strictly use Quaternions. Here we grab values for processing.
-            const k = 0.1; // Smoothing factor
-            deviceControls.alpha += (e.alpha - deviceControls.alpha) * k;
-            deviceControls.beta += (e.beta - deviceControls.beta) * k;
-            deviceControls.gamma += (e.gamma - deviceControls.gamma) * k;
-
-            // Compute Camera Quaternion
-            const alpha = (deviceControls.alpha + orientationOffset) * RAD;
-            const beta = deviceControls.beta * RAD;
-            const gamma = deviceControls.gamma * RAD;
-            const orient = (window.orientation || 0) * RAD;
-
-            const q = new THREE.Quaternion();
-            
-            // Native device orientation logic for WebGL
-            // ZXY order usually works best for phones
-            const zee = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
-            q.setFromEuler(zee);
-            
-            // Adjustments
-            const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // -90 X
-            q.multiply(q1);
-            
-            // Screen orientation adjustment
-            const qs = new THREE.Quaternion();
-            qs.setFromAxisAngle(new THREE.Vector3(0,0,1), -orient);
-            q.multiply(qs);
-
-            camera.quaternion.copy(q);
-        }
-
-        // --- INTERACTION ---
-
-        function setupTouchGestures() {
-            let startX = 0;
-            let currentFov = 60;
-            const canvas = renderer.domElement;
-
-            // Calibration Drag (1 finger horizontal)
-            canvas.addEventListener('touchstart', e => {
-                if(e.touches.length === 1) startX = e.touches[0].pageX;
-            });
-            
-            canvas.addEventListener('touchmove', e => {
-                if(e.touches.length === 1) {
-                    const dx = e.touches[0].pageX - startX;
-                    orientationOffset += dx * 0.1; // Sensitivity
-                    startX = e.touches[0].pageX;
-                }
-            });
-
-            // Zoom (2 fingers) -> Handled by gesturechange or distance calc
-            // Simplified pinch
-            let initDist = 0;
-            canvas.addEventListener('touchstart', e => {
-                if(e.touches.length===2) {
-                    const dx = e.touches[0].pageX - e.touches[1].pageX;
-                    const dy = e.touches[0].pageY - e.touches[1].pageY;
-                    initDist = Math.sqrt(dx*dx+dy*dy);
-                }
-            });
-            canvas.addEventListener('touchmove', e => {
-                if(e.touches.length===2) {
-                    const dx = e.touches[0].pageX - e.touches[1].pageX;
-                    const dy = e.touches[0].pageY - e.touches[1].pageY;
-                    const dist = Math.sqrt(dx*dx+dy*dy);
-                    const delta = initDist - dist;
-                    
-                    camera.fov = THREE.MathUtils.clamp(camera.fov + delta * 0.1, 10, 100);
-                    camera.updateProjectionMatrix();
-                    initDist = dist;
-                }
-            });
-
-            // Reset Calib
-            document.getElementById('reset-calib').addEventListener('click', () => {
-                orientationOffset = 0;
-            });
-        }
-
-        // --- SEARCH LOGIC ---
-        const searchInput = document.getElementById('search');
-        const resultsDiv = document.getElementById('results');
-
-        searchInput.addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
-            resultsDiv.innerHTML = '';
-            if(val.length < 2) { resultsDiv.style.display='none'; return; }
-
-            const matches = celestialObjects.filter(o => o.name.toLowerCase().includes(val));
-            if(matches.length > 0) {
-                resultsDiv.style.display='block';
-                matches.forEach(m => {
-                    const div = document.createElement('div');
-                    div.className = 'result-item';
-                    div.innerHTML = `<span>${m.name}</span><span class="type">${m.type}</span>`;
-                    div.onclick = () => selectTarget(m);
-                    resultsDiv.appendChild(div);
-                });
-            }
-        });
-
-        function selectTarget(obj) {
-            targetObject = obj;
-            resultsDiv.style.display = 'none';
-            searchInput.value = obj.name;
-            document.getElementById('reticle').classList.add('locked');
-        }
-
-        // --- ANIMATION ---
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if(targetObject) {
-                // Determine screen position of target
-                // We need world position. The objects are inside rotated groups.
-                // We must force an update of matrices to get accurate world position
-                scene.updateMatrixWorld();
-                
-                // Get world pos
-                const vector = new THREE.Vector3();
-                if(targetObject.obj) {
-                    // It's a sprite/mesh
-                    targetObject.obj.getWorldPosition(vector);
-                } else {
-                    // It's a raw coord (apply group transforms manually)
-                    vector.copy(targetObject.pos);
-                    vector.applyMatrix4(window.starGroup.matrixWorld);
-                }
-                
-                // Project to screen
-                vector.project(camera);
-
-                const arrow = document.getElementById('target-arrow');
-                const reticle = document.getElementById('reticle');
-
-                // Check if in front of camera
-                if(vector.z < 1) {
-                    // On screen (roughly)
-                    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-                    const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
-
-                    // Bounds check for arrow
-                    const pad = 40;
-                    const isOffscreen = x < pad || x > window.innerWidth - pad || y < pad || y > window.innerHeight - pad;
-
-                    if(!isOffscreen) {
-                        reticle.style.display = 'block';
-                        reticle.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
-                        arrow.style.display = 'none';
-                    } else {
-                        // Just off edge
-                        reticle.style.display = 'none';
-                        arrow.style.display = 'block';
-                        positionArrow(x, y);
-                    }
-                } else {
-                    // Behind camera
-                    reticle.style.display = 'none';
-                    arrow.style.display = 'block';
-                    // Invert coords to point "behind"
-                    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-                    const y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
-                    positionArrow(window.innerWidth - x, window.innerHeight - y);
-                }
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        function positionArrow(targetX, targetY) {
-            const arrow = document.getElementById('target-arrow');
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            
-            const dx = targetX - centerX;
-            const dy = targetY - centerY;
-            const angle = Math.atan2(dy, dx);
-            
-            // Distance from center to edge of circle
-            const radius = Math.min(window.innerWidth, window.innerHeight) / 2 - 50;
-            
-            const x = centerX + Math.cos(angle) * radius;
-            const y = centerY + Math.sin(angle) * radius;
-            
-            arrow.style.transform = `translate(${x}px, ${y}px) rotate(${angle + Math.PI/2}rad)`;
-        }
-
-    </script>
+  renderer.render(scene,camera);
+}
+</script>
 </body>
 </html>
